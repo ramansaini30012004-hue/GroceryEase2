@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/app_bg">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingBottom="90dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="20dp">
+
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:id="@+id/profileImage"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:src="@drawable/user_24"
+                android:layout_gravity="center"
+                app:civ_border_width="3dp"
+                app:civ_border_color="@color/button_green"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@color/card_bg"
+                android:layout_marginTop="20dp"
+                android:padding="20dp">
+
+                <EditText
+                    android:id="@+id/ushopname"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Shop Name"
+                    android:textColor="@color/profile_text"
+                    android:textColorHint="@color/profile_hint"
+                    android:backgroundTint="@color/button_green"
+                    android:textCursorDrawable="@color/button_green"/>
+
+                <EditText
+                    android:id="@+id/phone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Phone"
+                    android:inputType="phone"
+                    android:textColor="@color/profile_text"
+                    android:textColorHint="@color/profile_hint"
+                    android:backgroundTint="@color/button_green"
+                    android:textCursorDrawable="@color/button_green"
+                    android:layout_marginTop="10dp"/>
+
+                <EditText
+                    android:id="@+id/address"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Address"
+                    android:textColor="@color/profile_text"
+                    android:textColorHint="@color/profile_hint"
+                    android:backgroundTint="@color/button_green"
+                    android:textCursorDrawable="@color/button_green"
+                    android:layout_marginTop="10dp"/>
+
+                <Button
+                    android:id="@+id/getLocation"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:text="Get Current Location"
+                    android:textColor="@color/white"
+                    android:backgroundTint="@color/button_green"
+                    android:layout_marginTop="15dp"/>
+
+                <Button
+                    android:id="@+id/editProfile"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:text="Save Profile"
+                    android:textColor="@color/white"
+                    android:backgroundTint="@color/button_green"
+                    android:layout_marginTop="10dp"/>
+
+                <LinearLayout
+                    android:id="@+id/orderHistory"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@color/card_bg"
+                    android:padding="12dp"
+                    android:layout_marginTop="10dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@android:drawable/ic_menu_recent_history"
+                        android:tint="@color/profile_text"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Order History"
+                        android:textColor="@color/profile_text"
+                        android:textSize="16sp"
+                        android:layout_marginStart="10dp"/>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/settings"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@color/card_bg"
+                    android:padding="12dp"
+                    android:layout_marginTop="10dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@android:drawable/ic_menu_preferences"
+                        android:tint="@color/profile_text"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Settings"
+                        android:textColor="@color/profile_text"
+                        android:textSize="16sp"
+                        android:layout_marginStart="10dp"/>
+
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/logout"
+                    android:layout_width="120dp"
+                    android:layout_height="45dp"
+                    android:text="Logout"
+                    android:textColor="@color/white"
+                    android:backgroundTint="@color/button_green"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="15dp"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</FrameLayout>

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "427470197115",
+    "project_id": "groceryease-b7392",
+    "storage_bucket": "groceryease-b7392.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:427470197115:android:b856a81d98d5c18364edde",
+        "android_client_info": {
+          "package_name": "com.example.groceryease"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD77HaLHIPN4JOKZ4OebTMIFWn6ex2D1ts"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:427470197115:android:86d525942e5f11aa64edde",
+        "android_client_info": {
+          "package_name": "com.example.groceryease2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD77HaLHIPN4JOKZ4OebTMIFWn6ex2D1ts"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

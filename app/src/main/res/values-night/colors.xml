@@ -1,0 +1,24 @@
+<resources>
+
+
+    <color name="secondary_text">#B0B0B0</color>
+    <color name="mic_color">#FFFFFF</color>  <!-- White -->
+    <color name="app_bg">#121212</color>
+    <color name="card_bg">#1E1E1E</color>
+    <color name="mic_bg">#4CAF50</color>
+    <color name="mic_icon">#FFFFFF</color>
+    <color name="primary_green">#4CAF50</color>
+    <color name="settings_text">#FFFFFF</color>
+    <color name="button_green">#4CAF50</color>
+    <color name="profile_text">#FFFFFF</color>
+    <color name="profile_hint">#B0B0B0</color>
+    <color name="white">#FFFFFF</color>
+    <!-- white icon -->
+    <color name="edittext_text">#FFFFFF</color>
+    <color name="edittext_hint">#B0B0B0</color>
+        <!-- White icon -->
+    <color name="app_text">#FFFFFF</color>
+    <color name="category_text">#FFFFFF</color>
+    <color name="nav_bg">#000000</color>
+    <color name="nav_icon">#FFFFFF</color>
+</resources>
