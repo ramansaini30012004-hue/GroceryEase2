@@ -23,7 +23,6 @@
                 android:layout_width="120dp"
                 android:layout_height="120dp"
                 android:src="@drawable/user_24"
-                android:layout_gravity="center"
                 app:civ_border_width="3dp"
                 app:civ_border_color="@color/button_green"/>
 
@@ -39,22 +38,18 @@
                     android:id="@+id/ushopname"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Shop Name"
-                    android:textColor="@color/profile_text"
-                    android:textColorHint="@color/profile_hint"
-                    android:backgroundTint="@color/button_green"
-                    android:textCursorDrawable="@color/button_green"/>
+                    android:textColor="@android:color/black"
+                    android:textColorHint="@android:color/darker_gray"/>
+                    android:hint="Shop Name"/>
 
                 <EditText
                     android:id="@+id/phone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Phone"
+                    android:textColor="@android:color/black"
+                    android:textColorHint="@android:color/darker_gray"/>
                     android:inputType="phone"
-                    android:textColor="@color/profile_text"
-                    android:textColorHint="@color/profile_hint"
-                    android:backgroundTint="@color/button_green"
-                    android:textCursorDrawable="@color/button_green"
                     android:layout_marginTop="10dp"/>
 
                 <EditText
@@ -62,10 +57,30 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Address"
-                    android:textColor="@color/profile_text"
-                    android:textColorHint="@color/profile_hint"
-                    android:backgroundTint="@color/button_green"
-                    android:textCursorDrawable="@color/button_green"
+                    android:textColor="@android:color/black"
+                    android:textColorHint="@android:color/darker_gray"/>
+                    android:layout_marginTop="10dp"/>
+
+                <!-- Latitude -->
+                <EditText
+                    android:id="@+id/latitude"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Latitude"
+                    android:textColor="@android:color/black"
+                    android:textColorHint="@android:color/darker_gray"/>
+                    android:enabled="false"
+                    android:layout_marginTop="10dp"/>
+
+                <!-- Longitude -->
+                <EditText
+                    android:id="@+id/longitude"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Longitude"
+                    android:textColor="@android:color/black"
+                    android:textColorHint="@android:color/darker_gray"/>
+                    android:enabled="false"
                     android:layout_marginTop="10dp"/>
 
                 <Button
@@ -73,8 +88,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
                     android:text="Get Current Location"
-                    android:textColor="@color/white"
-                    android:backgroundTint="@color/button_green"
                     android:layout_marginTop="15dp"/>
 
                 <Button
@@ -82,69 +95,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
                     android:text="Save Profile"
-                    android:textColor="@color/white"
-                    android:backgroundTint="@color/button_green"
                     android:layout_marginTop="10dp"/>
-
-                <LinearLayout
-                    android:id="@+id/orderHistory"
-                    android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:background="@color/card_bg"
-                    android:padding="12dp"
-                    android:layout_marginTop="10dp">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_menu_recent_history"
-                        android:tint="@color/profile_text"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Order History"
-                        android:textColor="@color/profile_text"
-                        android:textSize="16sp"
-                        android:layout_marginStart="10dp"/>
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/settings"
-                    android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:background="@color/card_bg"
-                    android:padding="12dp"
-                    android:layout_marginTop="10dp">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_menu_preferences"
-                        android:tint="@color/profile_text"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Settings"
-                        android:textColor="@color/profile_text"
-                        android:textSize="16sp"
-                        android:layout_marginStart="10dp"/>
-
-                </LinearLayout>
 
                 <Button
                     android:id="@+id/logout"
                     android:layout_width="120dp"
                     android:layout_height="45dp"
                     android:text="Logout"
-                    android:textColor="@color/white"
-                    android:backgroundTint="@color/button_green"
                     android:layout_gravity="center"
                     android:layout_marginTop="15dp"/>
 

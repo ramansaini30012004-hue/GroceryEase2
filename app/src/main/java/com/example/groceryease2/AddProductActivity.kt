@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Base64
 import android.widget.*
@@ -29,23 +30,19 @@ class AddProductActivity : AppCompatActivity() {
 
     val PICK_IMAGE = 1
     var category: String? = null
-    override fun onCreate(savedInstanceState: Bundle?) {
 
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_product)
 
-        // ✅ STATUS BAR COLOR CHANGE
+        // Status bar color
         window.statusBarColor = getColor(R.color.button_green)
 
-        // ✅ Status bar icons (white)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             window.decorView.systemUiVisibility = 0
         }
-    override fun onCreate(savedInstanceState: Bundle?) {
 
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_add_product)
-
+        // Init views
         productImage = findViewById(R.id.productImage)
         uploadBtn = findViewById(R.id.uploadBtn)
         saveBtn = findViewById(R.id.saveBtn)
@@ -69,10 +66,8 @@ class AddProductActivity : AppCompatActivity() {
 
         // Select Image
         uploadBtn.setOnClickListener {
-
             val intent = Intent(Intent.ACTION_PICK)
             intent.type = "image/*"
-
             startActivityForResult(intent, PICK_IMAGE)
         }
 
@@ -85,84 +80,63 @@ class AddProductActivity : AppCompatActivity() {
             val priceValue = price.text.toString()
 
             if (name.isEmpty() || qty.isEmpty() || priceValue.isEmpty() || imageBase64 == null) {
-
                 Toast.makeText(this, "Fill all fields & select image", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             val database = FirebaseDatabase.getInstance().getReference("products")
-
             val productId = database.push().key!!
 
             val product = ProductModel(
                 id = FirebaseAuth.getInstance().uid.toString(),
-                name,
-                qty,
-                unit,
-                priceValue,
-                imageBase64!!,
+                name = name,
+                quantity = qty,
+                unit = unit,
+                price = priceValue,
+                image = imageBase64!!,
                 category = category.toString()
             )
 
-            category?.let {
-
-                database
-                    .child(productId)
-                    .setValue(product)
-                    .addOnSuccessListener {
-
-                        Toast.makeText(this, "Product successfully added", Toast.LENGTH_LONG).show()
-
-                        clearFields()
-                    }
-                    .addOnFailureListener {
-
-                        Toast.makeText(this, "Failed to save product", Toast.LENGTH_SHORT).show()
-                    }
-            }
+            database.child(productId)
+                .setValue(product)
+                .addOnSuccessListener {
+                    Toast.makeText(this, "Product successfully added", Toast.LENGTH_LONG).show()
+                    clearFields()
+                }
+                .addOnFailureListener {
+                    Toast.makeText(this, "Failed to save product", Toast.LENGTH_SHORT).show()
+                }
         }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-
         super.onActivityResult(requestCode, resultCode, data)
 
         if (requestCode == PICK_IMAGE && resultCode == Activity.RESULT_OK) {
 
             val imageUri: Uri? = data?.data
-
             productImage.setImageURI(imageUri)
 
             imageUri?.let {
-
                 val inputStream: InputStream? = contentResolver.openInputStream(it)
-
                 val bitmap = BitmapFactory.decodeStream(inputStream)
-
                 imageBase64 = encodeImage(bitmap)
             }
         }
     }
 
     private fun encodeImage(bitmap: Bitmap): String {
-
-        val byteArrayOutputStream = ByteArrayOutputStream()
-
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 60, byteArrayOutputStream)
-
-        val bytes = byteArrayOutputStream.toByteArray()
-
+        val baos = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 60, baos)
+        val bytes = baos.toByteArray()
         return Base64.encodeToString(bytes, Base64.DEFAULT)
     }
 
     private fun clearFields() {
-
         productName.text.clear()
         quantity.text.clear()
         price.text.clear()
-
         productImage.setImageResource(android.R.drawable.ic_menu_camera)
-
         imageBase64 = null
     }
 }
