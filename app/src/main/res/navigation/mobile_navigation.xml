@@ -14,7 +14,7 @@
 
     <fragment
         android:id="@+id/nav_notifications"
-        android:name="com.example.groceryease2.NotificationsFragment"
+        android:name="com.example.groceryease2.NotificationFragment"
         android:label="Map"
         tools:layout="@layout/fragment_notifications"/>
     " />

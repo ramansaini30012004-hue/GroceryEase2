@@ -1,14 +1,31 @@
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".NotificationsFragment">
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#F8F9FA">
 
-    <!-- TODO: Update blank fragment layout -->
     <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Manage Products"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="#333"
+        android:layout_marginBottom="16dp"/>
+
+    <Spinner
+        android:id="@+id/categoryFilterSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:background="@android:drawable/editbox_dropdown_light_frame"
+        android:layout_marginBottom="10dp"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/productRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        android:clipToPadding="false"
+        android:paddingBottom="80dp"/>
 
-</FrameLayout>
+</LinearLayout>
