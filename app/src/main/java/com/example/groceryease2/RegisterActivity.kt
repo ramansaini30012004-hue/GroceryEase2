@@ -4,8 +4,9 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.google.firebase.auth.FirebaseAuth
 import com.example.groceryease2.databinding.ActivityRegisterBinding
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 
 class RegisterActivity : AppCompatActivity() {
 
@@ -20,13 +21,31 @@ class RegisterActivity : AppCompatActivity() {
 
         auth = FirebaseAuth.getInstance()
 
-        // Already logged in
+        // ✅ AUTO LOGIN CHECK (FIXED WITH FIREBASE)
         if (auth.currentUser != null) {
-            startActivity(Intent(this, BottomNavigationActivity::class.java))
-            finish()
+
+            val uid = auth.currentUser?.uid
+
+            FirebaseDatabase.getInstance()
+                .getReference("Users")
+                .child(uid!!)
+                .get()
+                .addOnSuccessListener { snapshot ->
+
+                    val intent = Intent(this, BottomNavigationActivity::class.java)
+
+                    if (snapshot.exists()) {
+                        intent.putExtra("openProfile", false) // HOME
+                    } else {
+                        intent.putExtra("openProfile", true) // PROFILE
+                    }
+
+                    startActivity(intent)
+                    finish()
+                }
         }
 
-        // REGISTER
+        // ✅ REGISTER
         binding.btnRegister.setOnClickListener {
 
             val email = binding.emailTv.text.toString().trim()
@@ -43,40 +62,29 @@ class RegisterActivity : AppCompatActivity() {
             }
 
             if (password.length < 6) {
-                binding.passwordTv.error = "Password must be at least 6 characters"
+                binding.passwordTv.error = "Min 6 characters required"
                 return@setOnClickListener
             }
 
             auth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener { task ->
+                .addOnCompleteListener {
 
-                    if (task.isSuccessful) {
+                    if (it.isSuccessful) {
 
-                        // EMAIL SAVE
-                        val sp = getSharedPreferences("user", MODE_PRIVATE)
-                        sp.edit().putString("email", email).apply()
+                        // ✅ NEW USER → DIRECT PROFILE
+                        val intent = Intent(this, BottomNavigationActivity::class.java)
+                        intent.putExtra("openProfile", true)
 
-                        Toast.makeText(
-                            this,
-                            "Account Created Successfully",
-                            Toast.LENGTH_SHORT
-                        ).show()
-
-                        startActivity(Intent(this, BottomNavigationActivity::class.java))
+                        startActivity(intent)
                         finish()
 
                     } else {
-
-                        Toast.makeText(
-                            this,
-                            task.exception?.message,
-                            Toast.LENGTH_LONG
-                        ).show()
+                        Toast.makeText(this, it.exception?.message, Toast.LENGTH_LONG).show()
                     }
                 }
         }
 
-        // LOGIN
+        // ✅ LOGIN
         binding.btnLogin.setOnClickListener {
 
             val email = binding.emailTv.text.toString().trim()
@@ -93,30 +101,34 @@ class RegisterActivity : AppCompatActivity() {
             }
 
             auth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener { task ->
+                .addOnCompleteListener {
 
-                    if (task.isSuccessful) {
+                    if (it.isSuccessful) {
 
-                        // EMAIL SAVE
-                        val sp = getSharedPreferences("user", MODE_PRIVATE)
-                        sp.edit().putString("email", email).apply()
+                        val uid = auth.currentUser?.uid
 
-                        Toast.makeText(
-                            this,
-                            "Login Successful",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        FirebaseDatabase.getInstance()
+                            .getReference("Users")
+                            .child(uid!!)
+                            .get()
+                            .addOnSuccessListener { snapshot ->
 
-                        startActivity(Intent(this, BottomNavigationActivity::class.java))
-                        finish()
+                                val intent = Intent(this, BottomNavigationActivity::class.java)
+
+                                if (snapshot.exists()) {
+                                    // ✅ Profile already filled
+                                    intent.putExtra("openProfile", false) // HOME
+                                } else {
+                                    // ❌ Profile not filled
+                                    intent.putExtra("openProfile", true) // PROFILE
+                                }
+
+                                startActivity(intent)
+                                finish()
+                            }
 
                     } else {
-
-                        Toast.makeText(
-                            this,
-                            task.exception?.message,
-                            Toast.LENGTH_LONG
-                        ).show()
+                        Toast.makeText(this, it.exception?.message, Toast.LENGTH_LONG).show()
                     }
                 }
         }

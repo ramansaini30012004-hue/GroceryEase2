@@ -4,11 +4,19 @@
 
         <item name="android:windowBackground">@color/app_bg</item>
 
+        <!-- Primary Colors -->
         <item name="colorPrimary">@color/primary_green</item>
         <item name="colorPrimaryVariant">@color/button_green</item>
 
-        <item name="android:textColorPrimary">@color/app_text</item>
+        <!-- ✅ ONLY THIS -->
         <item name="android:statusBarColor">@color/button_green</item>
+
+        <!-- Icons white -->
+        <item name="android:windowLightStatusBar">false</item>
+
+        <!-- Text -->
+        <item name="android:textColorPrimary">@color/app_text</item>
+
     </style>
 
 </resources>

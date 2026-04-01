@@ -43,7 +43,7 @@
             android:layout_height="40dp"
             android:backgroundTint="@color/mic_bg"
             android:src="@android:drawable/ic_btn_speak_now"
-            android:tint="@color/mic_icon"
+            android:tint="@color/button_green"
             android:padding="6dp"/>
 
     </LinearLayout>

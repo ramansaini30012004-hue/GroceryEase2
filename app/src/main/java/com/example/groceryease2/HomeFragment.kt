@@ -10,6 +10,8 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import java.util.*
 
 class HomeFragment : Fragment() {
@@ -19,6 +21,7 @@ class HomeFragment : Fragment() {
     private lateinit var micBtn: ImageButton
 
     private val SPEECH_REQUEST = 100
+    private lateinit var auth: FirebaseAuth
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -32,16 +35,10 @@ class HomeFragment : Fragment() {
         txtWelcome = view.findViewById(R.id.txtWelcome)
         micBtn = view.findViewById(R.id.micBtn)
 
-        // 🔹 EMAIL SE NAME NIKALNA
-        val sp = requireActivity().getSharedPreferences("user", 0)
-        val email = sp.getString("email", null)
+        auth = FirebaseAuth.getInstance()
 
-        if (email != null && email.contains("@")) {
-            val name = email.substringBefore("@")
-            txtWelcome.text = "Welcome, $name"
-        } else {
-            txtWelcome.text = "Welcome"
-        }
+        // 🔥 LOAD SHOP NAME FROM FIREBASE
+        loadUserName()
 
         // CATEGORY LIST
         val list = listOf(
@@ -87,6 +84,31 @@ class HomeFragment : Fragment() {
         return view
     }
 
+    // 🔥 FETCH NAME
+    private fun loadUserName() {
+
+        val uid = auth.currentUser?.uid ?: return
+
+        FirebaseDatabase.getInstance()
+            .getReference("Users")
+            .child(uid)
+            .get()
+            .addOnSuccessListener { snapshot ->
+
+                if (snapshot.exists()) {
+
+                    val name = snapshot.child("shopName").value.toString()
+
+                    txtWelcome.text = "Welcome, $name"
+                } else {
+                    txtWelcome.text = "Welcome"
+                }
+            }
+            .addOnFailureListener {
+                txtWelcome.text = "Welcome"
+            }
+    }
+
     // 🎤 VOICE RESULT
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -94,7 +116,6 @@ class HomeFragment : Fragment() {
         if (requestCode == SPEECH_REQUEST && resultCode == Activity.RESULT_OK) {
 
             val result = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-
             val voiceText = result?.get(0) ?: ""
 
             processVoiceCommand(voiceText)
@@ -122,7 +143,7 @@ class HomeFragment : Fragment() {
 
         if (product.isNotEmpty() && price.isNotEmpty()) {
 
-            // TODO: Firebase database save
+            // TODO: Firebase save
             println("Product: $product Price: $price")
         }
     }

@@ -1,9 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F4F7F6"
+    android:background="@color/white"
     android:fillViewport="true">
 
     <LinearLayout
@@ -19,7 +18,7 @@
             android:layout_marginTop="10dp"
             android:layout_marginBottom="20dp"
             android:text="My Shop Profile"
-            android:textColor="#333"
+            android:textColor="#1B5E20"
             android:textSize="22sp"
             android:textStyle="bold" />
 
@@ -32,7 +31,7 @@
                 android:layout_width="120dp"
                 android:layout_height="120dp"
                 android:src="@drawable/user_24"
-                app:civ_border_color="#4CAF50"
+                app:civ_border_color="#1B5E20"
                 app:civ_border_width="3dp" />
 
             <ImageView
@@ -42,16 +41,18 @@
                 android:layout_alignBottom="@id/profileImage"
                 android:background="@android:color/white"
                 android:padding="6dp"
-                android:src="@android:drawable/ic_menu_camera"
-                app:tint="#4CAF50" />
+                android:src="@drawable/camera_alt_24"
+                app:tint="#1B5E20" />
         </RelativeLayout>
 
+        <!-- GREEN CARD -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="25dp"
             app:cardCornerRadius="15dp"
-            app:cardElevation="4dp">
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="#1B5E20">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -64,24 +65,36 @@
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
                     android:hint="Shop Name"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#CCFFFFFF"
                     android:inputType="textCapWords"
                     android:background="@android:color/transparent"
                     android:drawableStart="@android:drawable/ic_menu_myplaces"
+                    android:drawableTint="#FFFFFF"
                     android:drawablePadding="10dp" />
 
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#EEE" />
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#80FFFFFF" />
 
                 <EditText
                     android:id="@+id/phone"
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
                     android:hint="Phone Number"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#CCFFFFFF"
                     android:inputType="phone"
                     android:background="@android:color/transparent"
                     android:drawableStart="@android:drawable/ic_menu_call"
+                    android:drawableTint="#FFFFFF"
                     android:drawablePadding="10dp" />
 
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#EEE" />
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#80FFFFFF" />
 
                 <EditText
                     android:id="@+id/address"
@@ -90,11 +103,17 @@
                     android:focusable="false"
                     android:clickable="true"
                     android:hint="Tap to Search Address..."
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#CCFFFFFF"
                     android:background="@android:color/transparent"
                     android:drawableStart="@android:drawable/ic_dialog_map"
+                    android:drawableTint="#FFFFFF"
                     android:drawablePadding="10dp" />
 
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#EEE" />
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#80FFFFFF" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -108,6 +127,9 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:enabled="false"
+                        android:backgroundTint="#FFFFFF"
+                        android:textColor="#FFFFFF"
+                        android:textColorHint="#CCFFFFFF"
                         android:hint="Lat"
                         android:textSize="12sp" />
 
@@ -117,6 +139,9 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:enabled="false"
+                        android:textColor="#FFFFFF"
+                        android:backgroundTint="#FFFFFF"
+                        android:textColorHint="#CCFFFFFF"
                         android:hint="Long"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -129,22 +154,24 @@
                     android:layout_gravity="end"
                     android:text="Use My GPS"
                     android:textAllCaps="false"
-                    android:textColor="#4CAF50"
+                    android:textColor="#FFFFFF"
                     android:textSize="12sp" />
 
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <!-- SAVE BUTTON -->
         <Button
             android:id="@+id/editProfile"
             android:layout_width="match_parent"
             android:layout_height="55dp"
             android:layout_marginTop="30dp"
-            android:backgroundTint="#4CAF50"
+            android:backgroundTint="#1B5E20"
             android:text="Save Profile"
             android:textColor="@android:color/white"
             app:cornerRadius="10dp" />
 
+        <!-- LOGOUT -->
         <Button
             android:id="@+id/logout"
             style="?android:attr/borderlessButtonStyle"
@@ -152,6 +179,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="15dp"
             android:text="Logout"
+            android:textSize="17dp"
             android:textColor="#F44336" />
 
     </LinearLayout>

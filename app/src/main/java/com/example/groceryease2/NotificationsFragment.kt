@@ -1,23 +1,51 @@
 package com.example.groceryease2
 
 import android.app.AlertDialog
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
+import android.util.Base64
 import android.view.*
 import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.database.*
+import java.io.ByteArrayOutputStream
 
 class NotificationFragment : Fragment() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var spinner: Spinner
     private lateinit var adapter: ProductNotiAdapter
+
     private var allProducts = mutableListOf<ProductModel>()
     private val db = FirebaseDatabase.getInstance().getReference("products")
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+    // 🔥 IMAGE VARIABLES
+    private var selectedBitmap: Bitmap? = null
+    private var currentImageView: ImageView? = null
+
+    // ✅ NEW IMAGE PICKER (FIXED)
+    private val imagePicker =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let {
+                val inputStream = requireActivity().contentResolver.openInputStream(it)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+
+                selectedBitmap = Bitmap.createScaledBitmap(bitmap, 400, 400, false)
+                currentImageView?.setImageBitmap(selectedBitmap)
+            }
+        }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+
         val view = inflater.inflate(R.layout.fragment_notifications, container, false)
 
         recyclerView = view.findViewById(R.id.productRecyclerView)
@@ -31,20 +59,24 @@ class NotificationFragment : Fragment() {
     }
 
     private fun setupSpinner() {
-        // Updated to match HomeFragment categories
         val categories = arrayOf(
             "All", "Vegetables", "Fruits", "Spices", "Dairy",
             "Oils", "Bakery", "Household", "Pulses", "Beverages", "Snacks"
         )
 
-        val arrayAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, categories)
-        spinner.adapter = arrayAdapter
+        val spinnerAdapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_dropdown_item,
+            categories
+        )
+
+        spinner.adapter = spinnerAdapter
 
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(p0: AdapterView<*>?, p1: View?, p2: Int, p3: Long) {
-                filterProducts(categories[p2])
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                filterProducts(categories[position])
             }
-            override fun onNothingSelected(p0: AdapterView<*>?) {}
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
     }
 
@@ -52,6 +84,7 @@ class NotificationFragment : Fragment() {
         adapter = ProductNotiAdapter(allProducts) { product, key ->
             showEditDeleteDialog(product, key)
         }
+
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
     }
@@ -60,6 +93,7 @@ class NotificationFragment : Fragment() {
         db.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 allProducts.clear()
+
                 for (data in snapshot.children) {
                     val product = data.getValue(ProductModel::class.java)
                     if (product != null) {
@@ -67,20 +101,29 @@ class NotificationFragment : Fragment() {
                         allProducts.add(productWithId)
                     }
                 }
+
                 filterProducts(spinner.selectedItem.toString())
             }
+
             override fun onCancelled(error: DatabaseError) {}
         })
     }
 
     private fun filterProducts(category: String) {
-        val filtered = if (category == "All") allProducts else allProducts.filter { it.category == category }
+        val filtered = if (category == "All") allProducts
+        else allProducts.filter { it.category == category }
+
         adapter.updateList(filtered)
     }
 
+    // 🔥 MAIN FUNCTION (FULL FIXED)
     private fun showEditDeleteDialog(product: ProductModel, key: String) {
-        val builder = AlertDialog.Builder(context)
-        val dialogView = LayoutInflater.from(context).inflate(R.layout.activity_add_product, null)
+
+        selectedBitmap = null
+
+        val builder = AlertDialog.Builder(requireContext())
+        val dialogView = LayoutInflater.from(context)
+            .inflate(R.layout.activity_add_product, null)
         builder.setView(dialogView)
 
         val dialog = builder.create()
@@ -89,26 +132,51 @@ class NotificationFragment : Fragment() {
         val priceInput = dialogView.findViewById<EditText>(R.id.price)
         val qtyInput = dialogView.findViewById<EditText>(R.id.quantity)
         val saveBtn = dialogView.findViewById<Button>(R.id.saveBtn)
+        val productImage = dialogView.findViewById<ImageView>(R.id.productImage)
 
-        // Pre-fill
+        currentImageView = productImage
+
+        // Prefill
         nameInput.setText(product.name)
         priceInput.setText(product.price)
         qtyInput.setText(product.quantity)
         saveBtn.text = "Update"
 
+        // Load old image
+        if (!product.image.isNullOrEmpty()) {
+            val bytes = Base64.decode(product.image, Base64.DEFAULT)
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            productImage.setImageBitmap(bitmap)
+        }
+
+        // Change image
+        productImage.setOnClickListener {
+            imagePicker.launch("image/*")
+        }
+
+        // Save
         saveBtn.setOnClickListener {
-            val updatedMap = mapOf(
-                "name" to nameInput.text.toString(),
-                "price" to priceInput.text.toString(),
-                "quantity" to qtyInput.text.toString()
-            )
-            db.child(key).updateChildren(updatedMap).addOnSuccessListener {
+
+            val map = HashMap<String, Any>()
+            map["name"] = nameInput.text.toString()
+            map["price"] = priceInput.text.toString()
+            map["quantity"] = qtyInput.text.toString()
+
+            val finalBitmap = selectedBitmap ?: run {
+                val drawable = productImage.drawable
+                val bitmap = (drawable as BitmapDrawable).bitmap
+                bitmap
+            }
+
+            map["image"] = imageToBase64(finalBitmap)
+
+            db.child(key).updateChildren(map).addOnSuccessListener {
                 Toast.makeText(context, "Updated", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
             }
         }
 
-        // Use neutral button for Delete to avoid layout casting crashes
+        // Delete
         dialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Delete Product") { _, _ ->
             db.child(key).removeValue().addOnSuccessListener {
                 Toast.makeText(context, "Deleted", Toast.LENGTH_SHORT).show()
@@ -116,5 +184,11 @@ class NotificationFragment : Fragment() {
         }
 
         dialog.show()
+    }
+
+    private fun imageToBase64(bitmap: Bitmap): String {
+        val baos = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos)
+        return Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT)
     }
 }
