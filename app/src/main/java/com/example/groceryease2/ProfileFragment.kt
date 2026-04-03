@@ -12,7 +12,6 @@ import android.provider.MediaStore
 import android.util.Base64
 import android.view.*
 import android.widget.*
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import com.google.android.gms.location.LocationServices
@@ -39,7 +38,6 @@ class ProfileFragment : Fragment() {
     private var latitude: Double? = null
     private var longitude: Double? = null
 
-    // ✅ FIX: load only once
     private var isDataLoaded = false
 
     override fun onCreateView(
@@ -51,7 +49,6 @@ class ProfileFragment : Fragment() {
 
         auth = FirebaseAuth.getInstance()
 
-        // Bind views
         shopName = view.findViewById(R.id.ushopname)
         phone = view.findViewById(R.id.phone)
         address = view.findViewById(R.id.address)
@@ -62,34 +59,25 @@ class ProfileFragment : Fragment() {
         profileImage = view.findViewById(R.id.profileImage)
         getLocation = view.findViewById(R.id.getLocation)
 
-        // 📸 Image picker
         profileImage.setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
             startActivityForResult(intent, 100)
         }
 
-        // 🌍 Get Location
-        getLocation.setOnClickListener {
-            fetchLocation()
-        }
+        getLocation.setOnClickListener { fetchLocation() }
+        saveBtn.setOnClickListener { saveProfile() }
 
-        // 💾 Save Profile
-        saveBtn.setOnClickListener {
-            saveProfile()
-        }
-
-        // 🚪 Logout
         logout.setOnClickListener {
             auth.signOut()
-
             val intent = Intent(requireContext(), RegisterActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
         }
 
-        // 🔥 LOAD ONLY ONCE
+        // 🔥 FIRST LOAD → CACHE (instant)
         if (!isDataLoaded) {
-            loadProfile()
+            loadFromCache()     // ⚡ instant UI
+            loadFromFirebase()  // 🔄 background update
             isDataLoaded = true
         }
 
@@ -98,8 +86,6 @@ class ProfileFragment : Fragment() {
 
     // 📸 Image result
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
         if (requestCode == 100 && resultCode == Activity.RESULT_OK) {
             val uri = data?.data ?: return
             val inputStream = requireActivity().contentResolver.openInputStream(uri)
@@ -110,7 +96,7 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    // 🌍 Fetch Location
+    // 🌍 Location
     private fun fetchLocation() {
 
         val fusedLocation = LocationServices.getFusedLocationProviderClient(requireActivity())
@@ -125,9 +111,7 @@ class ProfileFragment : Fragment() {
         }
 
         fusedLocation.lastLocation.addOnSuccessListener { location ->
-
             location?.let {
-
                 latitude = it.latitude
                 longitude = it.longitude
 
@@ -136,13 +120,12 @@ class ProfileFragment : Fragment() {
 
                 val geocoder = Geocoder(requireContext(), Locale.getDefault())
                 val addresses = geocoder.getFromLocation(latitude!!, longitude!!, 1)
-
                 address.setText(addresses?.get(0)?.getAddressLine(0))
             }
         }
     }
 
-    // 💾 Save Profile
+    // 💾 SAVE
     private fun saveProfile() {
 
         val uid = auth.currentUser?.uid ?: return
@@ -153,16 +136,6 @@ class ProfileFragment : Fragment() {
 
         if (name.isEmpty()) {
             shopName.error = "Enter shop name"
-            return
-        }
-
-        if (phoneTxt.isEmpty()) {
-            phone.error = "Enter phone"
-            return
-        }
-
-        if (addressTxt.isEmpty()) {
-            address.error = "Enter address"
             return
         }
 
@@ -185,18 +158,15 @@ class ProfileFragment : Fragment() {
             .setValue(map)
             .addOnSuccessListener {
 
-                Toast.makeText(context, "Profile Saved", Toast.LENGTH_SHORT).show()
+                // ✅ CACHE SAVE (IMPORTANT)
+                saveToCache(name, phoneTxt, addressTxt, map["image"].toString())
 
-                // ✅ BACK (no reload issue)
-                requireActivity().onBackPressedDispatcher.onBackPressed()
-            }
-            .addOnFailureListener {
-                Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Profile Saved", Toast.LENGTH_SHORT).show()
             }
     }
 
-    // 🔥 LOAD PROFILE
-    private fun loadProfile() {
+    // 🔥 LOAD FROM FIREBASE (BACKGROUND)
+    private fun loadFromFirebase() {
 
         val uid = auth.currentUser?.uid ?: return
 
@@ -208,25 +178,61 @@ class ProfileFragment : Fragment() {
 
                 if (snapshot.exists()) {
 
-                    shopName.setText(snapshot.child("shopName").value.toString())
-                    phone.setText(snapshot.child("phone").value.toString())
-                    address.setText(snapshot.child("address").value.toString())
-                    latText.setText(snapshot.child("latitude").value.toString())
-                    longText.setText(snapshot.child("longitude").value.toString())
+                    val name = snapshot.child("shopName").value.toString()
+                    val phoneTxt = snapshot.child("phone").value.toString()
+                    val addressTxt = snapshot.child("address").value.toString()
+                    val lat = snapshot.child("latitude").value.toString()
+                    val lng = snapshot.child("longitude").value.toString()
+                    val image = snapshot.child("image").value.toString()
 
-                    val imageString = snapshot.child("image").value.toString()
+                    shopName.setText(name)
+                    phone.setText(phoneTxt)
+                    address.setText(addressTxt)
+                    latText.setText(lat)
+                    longText.setText(lng)
 
-                    if (imageString.isNotEmpty()) {
-                        val bytes = Base64.decode(imageString, Base64.DEFAULT)
+                    if (image.isNotEmpty()) {
+                        val bytes = Base64.decode(image, Base64.DEFAULT)
                         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                         profileImage.setImageBitmap(bitmap)
                         selectedBitmap = bitmap
                     }
+
+                    // ✅ update cache
+                    saveToCache(name, phoneTxt, addressTxt, image)
                 }
             }
     }
 
-    // 🔁 Convert Image
+    // ⚡ CACHE SAVE
+    private fun saveToCache(name: String, phone: String, address: String, image: String) {
+        val pref = requireContext().getSharedPreferences("user", 0)
+        pref.edit()
+            .putString("name", name)
+            .putString("phone", phone)
+            .putString("address", address)
+            .putString("image", image)
+            .apply()
+    }
+
+    // ⚡ CACHE LOAD (INSTANT)
+    private fun loadFromCache() {
+        val pref = requireContext().getSharedPreferences("user", 0)
+
+        shopName.setText(pref.getString("name", ""))
+        phone.setText(pref.getString("phone", ""))
+        address.setText(pref.getString("address", ""))
+
+        val img = pref.getString("image", "")
+
+        if (!img.isNullOrEmpty()) {
+            val bytes = Base64.decode(img, Base64.DEFAULT)
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            profileImage.setImageBitmap(bitmap)
+            selectedBitmap = bitmap
+        }
+    }
+
     private fun imageToBase64(bitmap: Bitmap): String {
         val baos = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos)

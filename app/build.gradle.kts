@@ -76,6 +76,7 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
+    implementation("org.apache.poi:poi-ooxml:5.2.3")
     implementation ("com.google.android.libraries.places:places:3.3.0")
     implementation ("de.hdodenhof:circleimageview:3.1.0")
 

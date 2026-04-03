@@ -7,16 +7,35 @@
     android:orientation="vertical"
     android:background="@color/app_bg">
 
-    <TextView
-        android:id="@+id/txtWelcome"
-        android:layout_width="wrap_content"
+    <!-- 🔥 TOP ROW (Welcome + Add Button) -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Welcome"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:textColor="@color/button_green"
-        android:layout_margin="16dp"/>
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="10dp">
 
+        <TextView
+            android:id="@+id/txtWelcome"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Welcome"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="@color/button_green"/>
+
+        <ImageButton
+            android:id="@+id/btnAddCategory"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:background="@drawable/green_circle_bg"
+            android:src="@android:drawable/ic_input_add"
+            android:tint="@android:color/white"
+            android:padding="8dp"/>
+    </LinearLayout>
+
+    <!-- 🔍 SEARCH BAR (NOW BELOW) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="50dp"
@@ -30,12 +49,17 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
+
             android:hint="Add Product by Speak"
-            android:textColor="@color/edittext_text"
-            android:textColorHint="@color/edittext_hint"
-            android:background="@null"
-            android:backgroundTint="@color/button_green"
-            android:textCursorDrawable="@color/button_green"/>
+
+            android:textColor="@color/button_green"
+            android:textColorHint="@color/button_green"
+
+            android:focusable="false"
+            android:clickable="true"
+            android:cursorVisible="false"
+
+            android:background="@null"/>
 
         <ImageButton
             android:id="@+id/micBtn"
@@ -45,9 +69,9 @@
             android:src="@android:drawable/ic_btn_speak_now"
             android:tint="@color/button_green"
             android:padding="6dp"/>
-
     </LinearLayout>
 
+    <!-- 📦 RECYCLER VIEW -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/categoryRecycler"
         android:layout_width="match_parent"

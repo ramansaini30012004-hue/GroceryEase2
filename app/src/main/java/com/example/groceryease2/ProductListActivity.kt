@@ -5,52 +5,58 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.*
 
 class ProductListActivity : AppCompatActivity() {
 
     lateinit var recyclerView: RecyclerView
-    lateinit var title:TextView
+    lateinit var title: TextView
 
     val list = ArrayList<ProductModel>()
-    lateinit var adapter:ProductAdapter
+    lateinit var adapter: ProductAdapter
 
-    override fun onCreate(savedInstanceState:Bundle?){
-
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_list)
 
         recyclerView = findViewById(R.id.productRecycler)
         title = findViewById(R.id.categoryTitle)
 
+        // ✅ CATEGORY FIX
         val category = intent.getStringExtra("category")
+            ?.trim()
+            ?.replaceFirstChar { it.uppercase() } ?: ""
 
         title.text = category
 
         recyclerView.layoutManager = LinearLayoutManager(this)
-
         adapter = ProductAdapter(list)
-
         recyclerView.adapter = adapter
 
         val database = FirebaseDatabase.getInstance().reference
 
-        database.child("products")
-            .child(category!!)
-            .get()
-            .addOnSuccessListener {
+        // ✅ CORRECT PATH + REALTIME LISTENER
+        database.child("Products")
+            .child(category)
+            .addValueEventListener(object : ValueEventListener {
 
-                for(snapshot in it.children){
+                override fun onDataChange(snapshot: DataSnapshot) {
 
-                    val product = snapshot.getValue(ProductModel::class.java)
+                    list.clear() // 🔥 important
 
-                    if(product!=null){
+                    for (snap in snapshot.children) {
 
-                        list.add(product)
+                        val product = snap.getValue(ProductModel::class.java)
+
+                        if (product != null) {
+                            list.add(product)
+                        }
                     }
+
+                    adapter.notifyDataSetChanged() // 🔥 refresh UI
                 }
 
-                adapter.notifyDataSetChanged()
-            }
+                override fun onCancelled(error: DatabaseError) {}
+            })
     }
 }

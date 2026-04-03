@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -9,23 +10,42 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Manage Products"
-        android:textSize="22sp"
+        android:textSize="24sp"
         android:textStyle="bold"
-        android:textColor="@color/white"
+        android:textColor="@android:color/white"
         android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:id="@+id/btnExportExcel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Download Excel Report"
+        android:backgroundTint="#FFC107"
+        android:textColor="#000000"
+        android:textStyle="bold"
+        android:layout_marginBottom="12dp"
+        android:elevation="4dp"/>
 
     <Spinner
         android:id="@+id/categoryFilterSpinner"
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:background="@android:drawable/editbox_dropdown_light_frame"
-        android:layout_marginBottom="10dp"/>
+        android:layout_marginBottom="12dp"
+        android:padding="8dp"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#4CAF50"
+        android:layout_marginBottom="12dp"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/productRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
+        android:scrollbars="vertical"
         android:paddingBottom="80dp"/>
 
 </LinearLayout>

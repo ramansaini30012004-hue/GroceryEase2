@@ -2,11 +2,11 @@ package com.example.groceryease2
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.groceryease2.databinding.ActivityRegisterBinding
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
 
 class RegisterActivity : AppCompatActivity() {
 
@@ -21,31 +21,25 @@ class RegisterActivity : AppCompatActivity() {
 
         auth = FirebaseAuth.getInstance()
 
-        // ✅ AUTO LOGIN CHECK (FIXED WITH FIREBASE)
-        if (auth.currentUser != null) {
+        // 🔥 UI hide initially (IMPORTANT)
+        binding.root.visibility = View.GONE
 
-            val uid = auth.currentUser?.uid
+        // ✅ FAST AUTO LOGIN CHECK
+        val user = auth.currentUser
 
-            FirebaseDatabase.getInstance()
-                .getReference("Users")
-                .child(uid!!)
-                .get()
-                .addOnSuccessListener { snapshot ->
-
-                    val intent = Intent(this, BottomNavigationActivity::class.java)
-
-                    if (snapshot.exists()) {
-                        intent.putExtra("openProfile", false) // HOME
-                    } else {
-                        intent.putExtra("openProfile", true) // PROFILE
-                    }
-
-                    startActivity(intent)
-                    finish()
-                }
+        if (user != null) {
+            // Already logged in → go to Home
+            val intent = Intent(this, BottomNavigationActivity::class.java)
+            intent.putExtra("openProfile", false)
+            startActivity(intent)
+            finish()
+            return
+        } else {
+            // Not logged in → show UI
+            binding.root.visibility = View.VISIBLE
         }
 
-        // ✅ REGISTER
+        // ================= REGISTER =================
         binding.btnRegister.setOnClickListener {
 
             val email = binding.emailTv.text.toString().trim()
@@ -67,24 +61,21 @@ class RegisterActivity : AppCompatActivity() {
             }
 
             auth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener {
+                .addOnSuccessListener {
 
-                    if (it.isSuccessful) {
+                    Toast.makeText(this, "Registered Successfully", Toast.LENGTH_SHORT).show()
 
-                        // ✅ NEW USER → DIRECT PROFILE
-                        val intent = Intent(this, BottomNavigationActivity::class.java)
-                        intent.putExtra("openProfile", true)
-
-                        startActivity(intent)
-                        finish()
-
-                    } else {
-                        Toast.makeText(this, it.exception?.message, Toast.LENGTH_LONG).show()
-                    }
+                    val intent = Intent(this, BottomNavigationActivity::class.java)
+                    intent.putExtra("openProfile", true) // new user
+                    startActivity(intent)
+                    finish()
+                }
+                .addOnFailureListener {
+                    Toast.makeText(this, it.message, Toast.LENGTH_LONG).show()
                 }
         }
 
-        // ✅ LOGIN
+        // ================= LOGIN =================
         binding.btnLogin.setOnClickListener {
 
             val email = binding.emailTv.text.toString().trim()
@@ -101,35 +92,17 @@ class RegisterActivity : AppCompatActivity() {
             }
 
             auth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener {
+                .addOnSuccessListener {
 
-                    if (it.isSuccessful) {
+                    Toast.makeText(this, "Login Successful", Toast.LENGTH_SHORT).show()
 
-                        val uid = auth.currentUser?.uid
-
-                        FirebaseDatabase.getInstance()
-                            .getReference("Users")
-                            .child(uid!!)
-                            .get()
-                            .addOnSuccessListener { snapshot ->
-
-                                val intent = Intent(this, BottomNavigationActivity::class.java)
-
-                                if (snapshot.exists()) {
-                                    // ✅ Profile already filled
-                                    intent.putExtra("openProfile", false) // HOME
-                                } else {
-                                    // ❌ Profile not filled
-                                    intent.putExtra("openProfile", true) // PROFILE
-                                }
-
-                                startActivity(intent)
-                                finish()
-                            }
-
-                    } else {
-                        Toast.makeText(this, it.exception?.message, Toast.LENGTH_LONG).show()
-                    }
+                    val intent = Intent(this, BottomNavigationActivity::class.java)
+                    intent.putExtra("openProfile", false)
+                    startActivity(intent)
+                    finish()
+                }
+                .addOnFailureListener {
+                    Toast.makeText(this, it.message, Toast.LENGTH_LONG).show()
                 }
         }
     }

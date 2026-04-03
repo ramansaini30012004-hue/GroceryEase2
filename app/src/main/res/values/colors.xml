@@ -10,7 +10,9 @@
     <color name="mic_color">#4CAF50</color>  <!-- Green -->
       <!-- Green icon -->
     <color name="button_green">#1B5E20</color>
-
+    <color name="dark_green">#1B5E20</color>
+    <color name="light_green">#4CAF50</color>
+    
     <color name="category_text">#1B5E20</color>
     <color name="edittext_text">#000000</color>
     <color name="edittext_hint">#666666</color>
