@@ -65,9 +65,9 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
     implementation("io.appwrite:sdk-for-android:12.0.0")
     // Glide Image Loader
-    implementation("com.github.bumptech.glide:glide:4.16.0")
-    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
-
+//    implementation("com.github.bumptech.glide:glide:4.16.0")
+//    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
+//    implementation ("github.com.bumptech.glide:glide:4.16.0")
     // Profile Circle Image
     implementation("de.hdodenhof:circleimageview:3.1.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
