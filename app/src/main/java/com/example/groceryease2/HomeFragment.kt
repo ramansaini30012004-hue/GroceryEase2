@@ -2,6 +2,7 @@ package com.example.groceryease2
 
 import android.Manifest
 import android.app.Activity
+import android.app.ProgressDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -13,10 +14,12 @@ import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import kotlinx.coroutines.launch
 import java.util.*
 
 class HomeFragment : Fragment() {
@@ -29,7 +32,6 @@ class HomeFragment : Fragment() {
     private lateinit var adapter: CategoryAdapter
     private val list = mutableListOf<CategoryModel>()
 
-    // We keep a separate list for defaults so they don't get cleared when Firebase updates
     private val defaultCategories = listOf(
         CategoryModel("Vegetables", imageResId = R.drawable.vegetales),
         CategoryModel("Fruits", imageResId = R.drawable.fruits),
@@ -46,11 +48,11 @@ class HomeFragment : Fragment() {
     private val PICK_IMAGE = 101
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseDatabase
+    private lateinit var appwriteManager: AppwriteManager
 
     private var selectedImageUri: Uri? = null
     private var dialogImageView: ImageView? = null
 
-    // 🎤 VOICE
     private var step = 0
     private var categoryName = ""
     private var productName = ""
@@ -74,16 +76,16 @@ class HomeFragment : Fragment() {
 
         auth = FirebaseAuth.getInstance()
         db = FirebaseDatabase.getInstance()
+        // Initialize Appwrite Manager
+        appwriteManager = AppwriteManager.getInstance(requireContext())
 
         loadUserName()
 
-        // 1. Initialize Adapter with defaults immediately
         list.addAll(defaultCategories)
         adapter = CategoryAdapter(list)
         recyclerView.layoutManager = GridLayoutManager(requireContext(), 2)
         recyclerView.adapter = adapter
 
-        // 2. Load dynamic categories from Firebase
         fetchFirebaseCategories()
 
         tts = TextToSpeech(requireContext()) {}
@@ -108,16 +110,12 @@ class HomeFragment : Fragment() {
         val ref = db.getReference("Categories")
         ref.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                // Clear the main list and re-add defaults first
                 list.clear()
                 list.addAll(defaultCategories)
 
-                // Add dynamic categories from Firebase
                 for (data in snapshot.children) {
                     val name = data.child("name").value.toString()
                     val imageUrl = data.child("image").value.toString()
-
-                    // Assuming CategoryModel can handle a name and an image string/URI
                     list.add(CategoryModel(name, imageUri = imageUrl))
                 }
                 adapter.notifyDataSetChanged()
@@ -129,21 +127,44 @@ class HomeFragment : Fragment() {
         })
     }
 
-    private fun saveCategoryToFirebase(name: String, imageUri: Uri?) {
-        val ref = db.getReference("Categories")
-        val id = ref.push().key ?: return
+    // ✅ UPDATED TO UPLOAD TO APPWRITE FIRST
+    private fun uploadCategory(name: String, imageUri: Uri?) {
+        val progressDialog = ProgressDialog(requireContext()).apply {
+            setMessage("Uploading Category...")
+            setCancelable(false)
+            show()
+        }
 
-        val map = HashMap<String, Any>()
-        map["name"] = name
-        map["image"] = imageUri?.toString() ?: ""
-        map["userId"] = FirebaseAuth.getInstance().uid.toString()
+        // Use lifecycleScope to run the suspend function
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                var finalImageUrl = ""
 
-        ref.child(id).setValue(map).addOnSuccessListener {
-            Toast.makeText(requireContext(), "Category Added Successfully", Toast.LENGTH_SHORT).show()
+                // 1. Upload to Appwrite if image is selected
+                if (imageUri != null) {
+                    finalImageUrl = appwriteManager.uploadImageFromUri(imageUri)
+                }
+
+                // 2. Save Metadata to Firebase
+                val ref = db.getReference("Categories")
+                val id = ref.push().key ?: return@launch
+
+                val map = HashMap<String, Any>()
+                map["name"] = name
+                map["image"] = finalImageUrl // This is now the Appwrite URL
+                map["userId"] = auth.uid.toString()
+
+                ref.child(id).setValue(map).addOnSuccessListener {
+                    progressDialog.dismiss()
+                    Toast.makeText(requireContext(), "Category Added Successfully", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                progressDialog.dismiss()
+                Toast.makeText(requireContext(), "Upload failed: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
-    // ✅ UPDATED DIALOG TO SAVE TO FIREBASE
     private fun openAddCategoryDialog() {
         val darkGreen = ContextCompat.getColor(requireContext(), R.color.dark_green)
         val layout = LinearLayout(requireContext()).apply {
@@ -161,6 +182,7 @@ class HomeFragment : Fragment() {
         val imageView = ImageView(requireContext()).apply {
             setImageResource(android.R.drawable.ic_menu_gallery)
             layoutParams = LinearLayout.LayoutParams(250, 250)
+            setPadding(0, 20, 0, 20)
         }
         dialogImageView = imageView
 
@@ -187,8 +209,9 @@ class HomeFragment : Fragment() {
             .setPositiveButton("Add") { _, _ ->
                 val name = editText.text.toString().trim()
                 if (name.isNotEmpty()) {
-                    saveCategoryToFirebase(name, selectedImageUri)
-                    selectedImageUri = null // Reset for next time
+                    // Call the upload function instead of direct Firebase save
+                    uploadCategory(name, selectedImageUri)
+                    selectedImageUri = null
                 } else {
                     Toast.makeText(requireContext(), "Enter name", Toast.LENGTH_SHORT).show()
                 }
@@ -212,6 +235,8 @@ class HomeFragment : Fragment() {
             handleVoiceInput(text)
         }
         if (requestCode == 101 && resultCode == Activity.RESULT_OK) {
+            // You should also update your Voice 'saveProduct' to use Appwrite
+            // similar to 'uploadCategory' if required.
             saveProduct(data?.data)
         }
         if (requestCode == PICK_IMAGE && resultCode == Activity.RESULT_OK) {
@@ -236,9 +261,13 @@ class HomeFragment : Fragment() {
     }
 
     private fun saveProduct(uri: Uri?) {
+        // Implementation for voice-added products
         val category = categoryName.trim().replaceFirstChar { it.uppercase() }
         val ref = db.getReference("Products").child(category)
         val id = ref.push().key ?: return
+
+        // Note: For voice input, you should ideally also upload 'uri' to Appwrite
+        // using lifecycleScope.launch before saving to Firebase.
         val map = hashMapOf(
             "name" to productName,
             "quantity" to quantity,
