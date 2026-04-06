@@ -5,21 +5,24 @@ import android.app.Activity
 import android.app.ProgressDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.*
 import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
+import android.util.Base64
 import android.view.*
+import android.view.animation.AlphaAnimation
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
 import java.util.*
 
 class HomeFragment : Fragment() {
@@ -48,17 +51,9 @@ class HomeFragment : Fragment() {
     private val PICK_IMAGE = 101
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseDatabase
-    private lateinit var appwriteManager: AppwriteManager
 
     private var selectedImageUri: Uri? = null
     private var dialogImageView: ImageView? = null
-
-    private var step = 0
-    private var categoryName = ""
-    private var productName = ""
-    private var quantity = ""
-    private var unit = ""
-    private var price = ""
 
     private lateinit var tts: TextToSpeech
 
@@ -67,6 +62,7 @@ class HomeFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+
         val view = inflater.inflate(R.layout.fragment_home, container, false)
 
         recyclerView = view.findViewById(R.id.categoryRecycler)
@@ -76,12 +72,12 @@ class HomeFragment : Fragment() {
 
         auth = FirebaseAuth.getInstance()
         db = FirebaseDatabase.getInstance()
-        // Initialize Appwrite Manager
-        appwriteManager = AppwriteManager.getInstance(requireContext())
 
         loadUserName()
 
+        list.clear()
         list.addAll(defaultCategories)
+
         adapter = CategoryAdapter(list)
         recyclerView.layoutManager = GridLayoutManager(requireContext(), 2)
         recyclerView.adapter = adapter
@@ -91,11 +87,16 @@ class HomeFragment : Fragment() {
         tts = TextToSpeech(requireContext()) {}
 
         micBtn.setOnClickListener {
-            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+
+            startBlinkAnimation()
+
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
                 requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 1000)
                 return@setOnClickListener
             }
-            step = 1
+
             speak("Which category?")
         }
 
@@ -106,67 +107,100 @@ class HomeFragment : Fragment() {
         return view
     }
 
+    // 🟢 GREEN BLINK
+    private fun startBlinkAnimation() {
+        val anim = AlphaAnimation(0.3f, 1.0f)
+        anim.duration = 300
+        anim.repeatMode = AlphaAnimation.REVERSE
+        anim.repeatCount = 5
+        micBtn.startAnimation(anim)
+
+        micBtn.setColorFilter(
+            ContextCompat.getColor(requireContext(), android.R.color.holo_green_dark)
+        )
+    }
+
+    // 🔥 BASE64
+    private fun uriToBase64(uri: Uri): String {
+        val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return ""
+        val bitmap = BitmapFactory.decodeStream(inputStream) ?: return ""
+
+        val stream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, stream)
+
+        val bytes = stream.toByteArray()
+        return Base64.encodeToString(bytes, Base64.DEFAULT)
+    }
+
+    // 🔥 FETCH (NO DUPLICATE)
     private fun fetchFirebaseCategories() {
         val ref = db.getReference("Categories")
+
         ref.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+
                 list.clear()
                 list.addAll(defaultCategories)
 
+                val addedNames = HashSet<String>()
+
                 for (data in snapshot.children) {
-                    val name = data.child("name").value.toString()
-                    val imageUrl = data.child("image").value.toString()
-                    list.add(CategoryModel(name, imageUri = imageUrl))
+                    val name = data.child("name").value?.toString() ?: ""
+                    val base64 = data.child("image").value?.toString() ?: ""
+
+                    if (!addedNames.contains(name)) {
+                        list.add(CategoryModel(name = name, imageBase64 = base64))
+                        addedNames.add(name)
+                    }
                 }
+
                 adapter.notifyDataSetChanged()
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(context, "Database Error: ${error.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, error.message, Toast.LENGTH_SHORT).show()
             }
         })
     }
 
-    // ✅ UPDATED TO UPLOAD TO APPWRITE FIRST
+    // 🔥 UPLOAD (NO DUPLICATE BUG)
     private fun uploadCategory(name: String, imageUri: Uri?) {
-        val progressDialog = ProgressDialog(requireContext()).apply {
-            setMessage("Uploading Category...")
-            setCancelable(false)
-            show()
-        }
 
-        // Use lifecycleScope to run the suspend function
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                var finalImageUrl = ""
+        val dialog = ProgressDialog(requireContext())
+        dialog.setMessage("Uploading...")
+        dialog.setCancelable(false)
+        dialog.show()
 
-                // 1. Upload to Appwrite if image is selected
-                if (imageUri != null) {
-                    finalImageUrl = appwriteManager.uploadImageFromUri(imageUri)
-                }
+        try {
+            var base64Image = ""
 
-                // 2. Save Metadata to Firebase
-                val ref = db.getReference("Categories")
-                val id = ref.push().key ?: return@launch
-
-                val map = HashMap<String, Any>()
-                map["name"] = name
-                map["image"] = finalImageUrl // This is now the Appwrite URL
-                map["userId"] = auth.uid.toString()
-
-                ref.child(id).setValue(map).addOnSuccessListener {
-                    progressDialog.dismiss()
-                    Toast.makeText(requireContext(), "Category Added Successfully", Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: Exception) {
-                progressDialog.dismiss()
-                Toast.makeText(requireContext(), "Upload failed: ${e.message}", Toast.LENGTH_LONG).show()
+            if (imageUri != null) {
+                base64Image = uriToBase64(imageUri)
             }
+
+            val ref = db.getReference("Categories")
+            val id = ref.push().key ?: return
+
+            val map = HashMap<String, Any>()
+            map["name"] = name
+            map["image"] = base64Image
+
+            ref.child(id).setValue(map).addOnSuccessListener {
+                dialog.dismiss()
+                Toast.makeText(requireContext(), "Category Added", Toast.LENGTH_SHORT).show()
+            }
+
+        } catch (e: Exception) {
+            dialog.dismiss()
+            Toast.makeText(requireContext(), e.message, Toast.LENGTH_SHORT).show()
         }
     }
 
+    // 🟢 GREEN DIALOG UI
     private fun openAddCategoryDialog() {
-        val darkGreen = ContextCompat.getColor(requireContext(), R.color.dark_green)
+
+        val green = ContextCompat.getColor(requireContext(), R.color.dark_green)
+
         val layout = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(40, 30, 40, 30)
@@ -174,8 +208,8 @@ class HomeFragment : Fragment() {
 
         val editText = EditText(requireContext()).apply {
             hint = "Enter category name"
-            setTextColor(darkGreen)
-            setHintTextColor(darkGreen)
+            setTextColor(green)
+            setHintTextColor(green)
             background = ContextCompat.getDrawable(requireContext(), R.drawable.edittext_green2)
         }
 
@@ -184,12 +218,14 @@ class HomeFragment : Fragment() {
             layoutParams = LinearLayout.LayoutParams(250, 250)
             setPadding(0, 20, 0, 20)
         }
+
         dialogImageView = imageView
 
         val btnImage = Button(requireContext()).apply {
             text = "Select Image"
-            setBackgroundColor(darkGreen)
+            setBackgroundColor(green)
             setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
+
             setOnClickListener {
                 val intent = Intent(Intent.ACTION_PICK)
                 intent.type = "image/*"
@@ -197,19 +233,17 @@ class HomeFragment : Fragment() {
             }
         }
 
-        layout.apply {
-            addView(editText)
-            addView(imageView)
-            addView(btnImage)
-        }
+        layout.addView(editText)
+        layout.addView(imageView)
+        layout.addView(btnImage)
 
-        AlertDialog.Builder(requireContext())
+        val dialog = AlertDialog.Builder(requireContext())
             .setTitle("Add Category")
             .setView(layout)
             .setPositiveButton("Add") { _, _ ->
                 val name = editText.text.toString().trim()
+
                 if (name.isNotEmpty()) {
-                    // Call the upload function instead of direct Firebase save
                     uploadCategory(name, selectedImageUri)
                     selectedImageUri = null
                 } else {
@@ -217,67 +251,30 @@ class HomeFragment : Fragment() {
                 }
             }
             .setNegativeButton("Cancel", null)
-            .show()
-    }
+            .create()
 
-    private fun speak(text: String) {
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
-        Handler(Looper.getMainLooper()).postDelayed({
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-            startActivityForResult(intent, 200)
-        }, 1500)
+        dialog.show()
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(green)
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(green)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == 200 && resultCode == Activity.RESULT_OK) {
-            val text = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.get(0)?.lowercase() ?: return
-            handleVoiceInput(text)
-        }
-        if (requestCode == 101 && resultCode == Activity.RESULT_OK) {
-            // You should also update your Voice 'saveProduct' to use Appwrite
-            // similar to 'uploadCategory' if required.
-            saveProduct(data?.data)
-        }
+
         if (requestCode == PICK_IMAGE && resultCode == Activity.RESULT_OK) {
             selectedImageUri = data?.data
             dialogImageView?.setImageURI(selectedImageUri)
         }
     }
 
-    private fun handleVoiceInput(text: String) {
-        when (step) {
-            1 -> { categoryName = text.replaceFirstChar { it.uppercase() }; step = 2; speak("Product name?") }
-            2 -> { productName = text; step = 3; speak("Quantity?") }
-            3 -> { quantity = text.filter { it.isDigit() }.ifEmpty { "1" }; step = 4; speak("Unit?") }
-            4 -> { unit = text; step = 5; speak("Price?") }
-            5 -> {
-                price = text.filter { it.isDigit() }.ifEmpty { "0" }
-                val intent = Intent(Intent.ACTION_PICK)
-                intent.type = "image/*"
-                startActivityForResult(intent, 101)
-            }
-        }
-    }
+    private fun speak(text: String) {
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
 
-    private fun saveProduct(uri: Uri?) {
-        // Implementation for voice-added products
-        val category = categoryName.trim().replaceFirstChar { it.uppercase() }
-        val ref = db.getReference("Products").child(category)
-        val id = ref.push().key ?: return
-
-        // Note: For voice input, you should ideally also upload 'uri' to Appwrite
-        // using lifecycleScope.launch before saving to Firebase.
-        val map = hashMapOf(
-            "name" to productName,
-            "quantity" to quantity,
-            "unit" to unit,
-            "price" to price,
-            "image" to (uri?.toString() ?: "")
-        )
-        ref.child(id).setValue(map).addOnSuccessListener {
-            Toast.makeText(requireContext(), "Product Added", Toast.LENGTH_SHORT).show()
-        }
+        Handler(Looper.getMainLooper()).postDelayed({
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            startActivityForResult(intent, 200)
+        }, 1500)
     }
 
     private fun loadUserName() {
