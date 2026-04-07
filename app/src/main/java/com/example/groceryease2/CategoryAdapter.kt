@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 
 class CategoryAdapter(private val list: MutableList<CategoryModel>) :
@@ -29,11 +30,13 @@ class CategoryAdapter(private val list: MutableList<CategoryModel>) :
     override fun getItemCount(): Int = list.size
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+
         val item = list[position]
+        val context = holder.itemView.context
 
         holder.name.text = item.name
 
-        // ✅ BASE64 IMAGE LOGIC
+        // IMAGE
         if (!item.imageBase64.isNullOrEmpty()) {
             try {
                 val bytes = Base64.decode(item.imageBase64, Base64.DEFAULT)
@@ -42,13 +45,27 @@ class CategoryAdapter(private val list: MutableList<CategoryModel>) :
             } catch (e: Exception) {
                 holder.image.setImageResource(R.drawable.household)
             }
-
         } else if (item.imageResId != null && item.imageResId != 0) {
-            // ✅ Default drawable
             holder.image.setImageResource(item.imageResId!!)
         } else {
-            // ✅ Fallback
             holder.image.setImageResource(R.drawable.household)
+        }
+
+        // ✅ GREEN HIGHLIGHT (#1B5E20)
+        if (item.isSelected) {
+            holder.name.setTextColor(
+                ContextCompat.getColor(context, android.R.color.white)
+            )
+            holder.name.setBackgroundColor(
+                ContextCompat.getColor(context, R.color.dark_green)
+            )
+        } else {
+            holder.name.setTextColor(
+                ContextCompat.getColor(context, android.R.color.black)
+            )
+            holder.name.setBackgroundColor(
+                ContextCompat.getColor(context, android.R.color.transparent)
+            )
         }
 
         holder.add.setOnClickListener {

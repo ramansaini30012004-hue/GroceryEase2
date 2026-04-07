@@ -50,7 +50,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
 
-            android:hint="Add Product by Speak"
+            android:hint="Find Categories by Speak"
 
             android:textColor="@color/button_green"
             android:textColorHint="@color/button_green"

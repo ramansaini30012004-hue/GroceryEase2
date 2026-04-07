@@ -2,7 +2,6 @@ package com.example.groceryease2
 
 import android.Manifest
 import android.app.Activity
-import android.app.ProgressDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -107,7 +106,7 @@ class HomeFragment : Fragment() {
         return view
     }
 
-    // 🟢 GREEN BLINK
+    // 🟢 BLINK
     private fun startBlinkAnimation() {
         val anim = AlphaAnimation(0.3f, 1.0f)
         anim.duration = 300
@@ -118,6 +117,47 @@ class HomeFragment : Fragment() {
         micBtn.setColorFilter(
             ContextCompat.getColor(requireContext(), android.R.color.holo_green_dark)
         )
+    }
+
+    // 🎤 RESULT HANDLE
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == PICK_IMAGE && resultCode == Activity.RESULT_OK) {
+            selectedImageUri = data?.data
+            dialogImageView?.setImageURI(selectedImageUri)
+        }
+
+        if (requestCode == 200 && resultCode == Activity.RESULT_OK) {
+            val result = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            val spoken = result?.get(0)?.lowercase()?.trim()
+
+            if (!spoken.isNullOrEmpty()) {
+                filterCategory(spoken)
+            }
+        }
+    }
+
+    // 🔥 FILTER
+    private fun filterCategory(spoken: String) {
+        var found = false
+
+        for (item in list) {
+            val name = item.name.lowercase()
+
+            if (name.contains(spoken) || spoken.contains(name)) {
+                item.isSelected = true
+                found = true
+            } else {
+                item.isSelected = false
+            }
+        }
+
+        if (!found) {
+            Toast.makeText(requireContext(), "Category not found", Toast.LENGTH_SHORT).show()
+        }
+
+        adapter.notifyDataSetChanged()
     }
 
     // 🔥 BASE64
@@ -132,7 +172,61 @@ class HomeFragment : Fragment() {
         return Base64.encodeToString(bytes, Base64.DEFAULT)
     }
 
-    // 🔥 FETCH (NO DUPLICATE)
+    // 🔥 ADD CATEGORY DIALOG (FIXED)
+    private fun openAddCategoryDialog() {
+
+        val layout = LinearLayout(requireContext())
+        layout.orientation = LinearLayout.VERTICAL
+        layout.setPadding(40, 40, 40, 40)
+
+        val editText = EditText(requireContext())
+        editText.hint = "Category Name"
+
+        val imageView = ImageView(requireContext())
+        imageView.setImageResource(R.drawable.household)
+
+        val btnSelect = Button(requireContext())
+        btnSelect.text = "Select Image"
+
+        layout.addView(editText)
+        layout.addView(imageView)
+        layout.addView(btnSelect)
+
+        dialogImageView = imageView
+
+        btnSelect.setOnClickListener {
+            val intent = Intent(Intent.ACTION_PICK)
+            intent.type = "image/*"
+            startActivityForResult(intent, PICK_IMAGE)
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Add Category")
+            .setView(layout)
+            .setPositiveButton("Add") { _, _ ->
+
+                val name = editText.text.toString().trim()
+
+                if (name.isEmpty()) {
+                    Toast.makeText(requireContext(), "Enter name", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                val base64 = selectedImageUri?.let { uriToBase64(it) } ?: ""
+
+                val ref = db.getReference("Categories").push()
+                val map = HashMap<String, Any>()
+                map["name"] = name
+                map["image"] = base64
+
+                ref.setValue(map)
+
+                Toast.makeText(requireContext(), "Category Added", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     private fun fetchFirebaseCategories() {
         val ref = db.getReference("Categories")
 
@@ -161,111 +255,6 @@ class HomeFragment : Fragment() {
                 Toast.makeText(context, error.message, Toast.LENGTH_SHORT).show()
             }
         })
-    }
-
-    // 🔥 UPLOAD (NO DUPLICATE BUG)
-    private fun uploadCategory(name: String, imageUri: Uri?) {
-
-        val dialog = ProgressDialog(requireContext())
-        dialog.setMessage("Uploading...")
-        dialog.setCancelable(false)
-        dialog.show()
-
-        try {
-            var base64Image = ""
-
-            if (imageUri != null) {
-                base64Image = uriToBase64(imageUri)
-            }
-
-            val ref = db.getReference("Categories")
-            val id = ref.push().key ?: return
-
-            val map = HashMap<String, Any>()
-            map["name"] = name
-            map["image"] = base64Image
-
-            ref.child(id).setValue(map).addOnSuccessListener {
-                dialog.dismiss()
-                Toast.makeText(requireContext(), "Category Added", Toast.LENGTH_SHORT).show()
-            }
-
-        } catch (e: Exception) {
-            dialog.dismiss()
-            Toast.makeText(requireContext(), e.message, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    // 🟢 GREEN DIALOG UI
-    private fun openAddCategoryDialog() {
-
-        val green = ContextCompat.getColor(requireContext(), R.color.dark_green)
-
-        val layout = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(40, 30, 40, 30)
-        }
-
-        val editText = EditText(requireContext()).apply {
-            hint = "Enter category name"
-            setTextColor(green)
-            setHintTextColor(green)
-            background = ContextCompat.getDrawable(requireContext(), R.drawable.edittext_green2)
-        }
-
-        val imageView = ImageView(requireContext()).apply {
-            setImageResource(android.R.drawable.ic_menu_gallery)
-            layoutParams = LinearLayout.LayoutParams(250, 250)
-            setPadding(0, 20, 0, 20)
-        }
-
-        dialogImageView = imageView
-
-        val btnImage = Button(requireContext()).apply {
-            text = "Select Image"
-            setBackgroundColor(green)
-            setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
-
-            setOnClickListener {
-                val intent = Intent(Intent.ACTION_PICK)
-                intent.type = "image/*"
-                startActivityForResult(intent, PICK_IMAGE)
-            }
-        }
-
-        layout.addView(editText)
-        layout.addView(imageView)
-        layout.addView(btnImage)
-
-        val dialog = AlertDialog.Builder(requireContext())
-            .setTitle("Add Category")
-            .setView(layout)
-            .setPositiveButton("Add") { _, _ ->
-                val name = editText.text.toString().trim()
-
-                if (name.isNotEmpty()) {
-                    uploadCategory(name, selectedImageUri)
-                    selectedImageUri = null
-                } else {
-                    Toast.makeText(requireContext(), "Enter name", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .create()
-
-        dialog.show()
-
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(green)
-        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(green)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        if (requestCode == PICK_IMAGE && resultCode == Activity.RESULT_OK) {
-            selectedImageUri = data?.data
-            dialogImageView?.setImageURI(selectedImageUri)
-        }
     }
 
     private fun speak(text: String) {

@@ -30,21 +30,21 @@ class NotificationFragment : Fragment() {
     private lateinit var btnExport: Button
 
     private var allProducts = mutableListOf<ProductModel>()
+    private var filteredProducts = mutableListOf<ProductModel>()
+    private val categoryList = mutableListOf<String>()
+
     private val db = FirebaseDatabase.getInstance().getReference("products")
 
     private var selectedBitmap: Bitmap? = null
     private var currentImageView: ImageView? = null
 
-    // ✅ IMAGE PICKER (WORKING)
     private val imagePicker =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             uri?.let {
                 try {
                     val inputStream = requireActivity().contentResolver.openInputStream(it)
                     val bitmap = BitmapFactory.decodeStream(inputStream)
-
                     selectedBitmap = Bitmap.createScaledBitmap(bitmap, 400, 400, false)
-
                     currentImageView?.setImageBitmap(selectedBitmap)
                 } catch (e: Exception) {
                     Toast.makeText(context, "Image load failed", Toast.LENGTH_SHORT).show()
@@ -64,8 +64,8 @@ class NotificationFragment : Fragment() {
         spinner = view.findViewById(R.id.categoryFilterSpinner)
         btnExport = view.findViewById(R.id.btnExportExcel)
 
-        setupSpinner()
         setupRecyclerView()
+        setupSpinner()
         fetchProducts()
 
         btnExport.setOnClickListener {
@@ -75,26 +75,51 @@ class NotificationFragment : Fragment() {
         return view
     }
 
+    // ✅ DEFAULT + FIREBASE CATEGORIES
     private fun setupSpinner() {
-        val categories = arrayOf(
-            "All", "Vegetables", "Fruits", "Spices", "Dairy",
-            "Oils", "Bakery", "Household", "Pulses", "Beverages", "Snacks"
-        )
 
-        val spinnerAdapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_dropdown_item,
-            categories
-        )
+        val ref = FirebaseDatabase.getInstance().getReference("Categories")
 
-        spinner.adapter = spinnerAdapter
+        ref.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
 
-        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                filterProducts(categories[position])
+                categoryList.clear()
+
+                // ✅ Default categories
+                val defaultCategories = listOf(
+                    "All", "Vegetables", "Fruits", "Spices", "Dairy",
+                    "Oils", "Bakery", "Household", "Pulses", "Beverages", "Snacks"
+                )
+
+                categoryList.addAll(defaultCategories)
+
+                // ✅ Firebase categories
+                for (data in snapshot.children) {
+                    val name = data.child("name").value?.toString()
+
+                    if (!name.isNullOrEmpty() && !categoryList.contains(name)) {
+                        categoryList.add(name)
+                    }
+                }
+
+                val spinnerAdapter = ArrayAdapter(
+                    requireContext(),
+                    android.R.layout.simple_spinner_dropdown_item,
+                    categoryList
+                )
+
+                spinner.adapter = spinnerAdapter
+
+                spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                    override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                        filterProducts(categoryList[position])
+                    }
+                    override fun onNothingSelected(parent: AdapterView<*>?) {}
+                }
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
+
+            override fun onCancelled(error: DatabaseError) {}
+        })
     }
 
     private fun setupRecyclerView() {
@@ -108,6 +133,7 @@ class NotificationFragment : Fragment() {
     private fun fetchProducts() {
         db.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+
                 allProducts.clear()
 
                 for (data in snapshot.children) {
@@ -122,23 +148,29 @@ class NotificationFragment : Fragment() {
                     }
                 }
 
-                filterProducts(spinner.selectedItem.toString())
+                filterProducts(spinner.selectedItem?.toString() ?: "All")
             }
 
             override fun onCancelled(error: DatabaseError) {}
         })
     }
 
+    // ✅ FILTER FIX
     private fun filterProducts(category: String) {
-        val filtered = if (category == "All") allProducts
-        else allProducts.filter { it.category == category }
 
-        adapter.updateList(filtered)
+        filteredProducts = if (category == "All") {
+            allProducts.toMutableList()
+        } else {
+            allProducts.filter { it.category.equals(category, true) }.toMutableList()
+        }
+
+        adapter.updateList(filteredProducts)
     }
 
+    // ✅ FILTERED EXPORT
     private fun exportToExcel() {
 
-        if (allProducts.isEmpty()) {
+        if (filteredProducts.isEmpty()) {
             Toast.makeText(context, "No data to export", Toast.LENGTH_SHORT).show()
             return
         }
@@ -153,9 +185,9 @@ class NotificationFragment : Fragment() {
             headerRow.createCell(i).setCellValue(headers[i])
         }
 
-        for (i in allProducts.indices) {
+        for (i in filteredProducts.indices) {
             val row = sheet.createRow(i + 1)
-            val product = allProducts[i]
+            val product = filteredProducts[i]
 
             row.createCell(0).setCellValue(product.name)
             row.createCell(1).setCellValue(product.category)
@@ -164,7 +196,7 @@ class NotificationFragment : Fragment() {
             row.createCell(4).setCellValue(product.unit)
         }
 
-        val fileName = "GroceryEase_Report_${System.currentTimeMillis()}.xlsx"
+        val fileName = "Filtered_Report_${System.currentTimeMillis()}.xlsx"
 
         try {
             val resolver = requireContext().contentResolver
@@ -183,7 +215,7 @@ class NotificationFragment : Fragment() {
                 outputStream?.close()
                 workbook.close()
 
-                Toast.makeText(context, "Excel Downloaded", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Filtered Excel Downloaded", Toast.LENGTH_LONG).show()
             }
 
         } catch (e: Exception) {
@@ -191,7 +223,7 @@ class NotificationFragment : Fragment() {
         }
     }
 
-    // ✅ MAIN FIXED DIALOG
+    // ✅ EDIT / DELETE
     private fun showEditDeleteDialog(product: ProductModel, key: String) {
 
         selectedBitmap = null
@@ -215,22 +247,14 @@ class NotificationFragment : Fragment() {
         qtyInput.setText(product.quantity)
         saveBtn.text = "Update"
 
-        // old image
         if (!product.image.isNullOrEmpty()) {
             val bytes = Base64.decode(product.image, Base64.DEFAULT)
             val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
             productImage.setImageBitmap(bitmap)
         }
 
-        // ✅ CLICK IMAGE
-        productImage.setOnClickListener {
-            imagePicker.launch("image/*")
-        }
-
-        // ✅ CLICK BUTTON
-        uploadBtn.setOnClickListener {
-            imagePicker.launch("image/*")
-        }
+        productImage.setOnClickListener { imagePicker.launch("image/*") }
+        uploadBtn.setOnClickListener { imagePicker.launch("image/*") }
 
         saveBtn.setOnClickListener {
 
