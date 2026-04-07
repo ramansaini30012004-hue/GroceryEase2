@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 
@@ -34,24 +35,25 @@ class CategoryAdapter(private val list: MutableList<CategoryModel>) :
         val item = list[position]
         val context = holder.itemView.context
 
+        // 🟢 Set Name
         holder.name.text = item.name
 
-        // IMAGE
-        if (!item.imageBase64.isNullOrEmpty()) {
-            try {
+        // 🟢 SAFE IMAGE LOADING (MAIN FIX)
+        try {
+            if (!item.imageBase64.isNullOrEmpty()) {
                 val bytes = Base64.decode(item.imageBase64, Base64.DEFAULT)
                 val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                 holder.image.setImageBitmap(bitmap)
-            } catch (e: Exception) {
+            } else if (item.imageResId != 0) {
+                holder.image.setImageResource(item.imageResId)
+            } else {
                 holder.image.setImageResource(R.drawable.household)
             }
-        } else if (item.imageResId != null && item.imageResId != 0) {
-            holder.image.setImageResource(item.imageResId!!)
-        } else {
+        } catch (e: Exception) {
             holder.image.setImageResource(R.drawable.household)
         }
 
-        // ✅ GREEN HIGHLIGHT (#1B5E20)
+        // 🟢 SELECTED UI
         if (item.isSelected) {
             holder.name.setTextColor(
                 ContextCompat.getColor(context, android.R.color.white)
@@ -68,29 +70,33 @@ class CategoryAdapter(private val list: MutableList<CategoryModel>) :
             )
         }
 
+        // 🟢 ADD BUTTON CLICK
         holder.add.setOnClickListener {
-            openAddProductScreen(holder, item)
+            try {
+                val intent = Intent(context, AddProductActivity::class.java)
+                intent.putExtra(
+                    "category",
+                    item.name.trim().replaceFirstChar { it.uppercase() }
+                )
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error opening Add Product", Toast.LENGTH_SHORT).show()
+            }
         }
 
+        // 🟢 ITEM CLICK
         holder.itemView.setOnClickListener {
-            openProductListScreen(holder, item)
+            try {
+                val intent = Intent(context, ProductListActivity::class.java)
+                intent.putExtra(
+                    "category",
+                    item.name.trim().replaceFirstChar { it.uppercase() }
+                )
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Click on button to add Product", Toast.LENGTH_SHORT).show()
+            }
         }
-    }
-
-    private fun openAddProductScreen(holder: ViewHolder, item: CategoryModel) {
-        val context = holder.itemView.context
-        val intent = Intent(context, AddProductActivity::class.java).apply {
-            putExtra("category", item.name.trim().replaceFirstChar { it.uppercase() })
-        }
-        context.startActivity(intent)
-    }
-
-    private fun openProductListScreen(holder: ViewHolder, item: CategoryModel) {
-        val context = holder.itemView.context
-        val intent = Intent(context, ProductListActivity::class.java).apply {
-            putExtra("category", item.name.trim().replaceFirstChar { it.uppercase() })
-        }
-        context.startActivity(intent)
     }
 
     fun addCategory(category: CategoryModel) {

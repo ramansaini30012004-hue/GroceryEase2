@@ -72,8 +72,10 @@ class HomeFragment : Fragment() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseDatabase.getInstance()
 
+        // 🟢 FAST USER NAME LOAD
         loadUserName()
 
+        // 🟢 SET DEFAULT DATA FIRST (NO WAIT)
         list.clear()
         list.addAll(defaultCategories)
 
@@ -81,6 +83,7 @@ class HomeFragment : Fragment() {
         recyclerView.layoutManager = GridLayoutManager(requireContext(), 2)
         recyclerView.adapter = adapter
 
+        // 🟢 LOAD FIREBASE DATA (OPTIMIZED)
         fetchFirebaseCategories()
 
         tts = TextToSpeech(requireContext()) {}
@@ -119,7 +122,7 @@ class HomeFragment : Fragment() {
         )
     }
 
-    // 🎤 RESULT HANDLE
+    // 🎤 RESULT
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
@@ -166,13 +169,13 @@ class HomeFragment : Fragment() {
         val bitmap = BitmapFactory.decodeStream(inputStream) ?: return ""
 
         val stream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, stream)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 40, stream) // 🔥 reduced size
 
         val bytes = stream.toByteArray()
         return Base64.encodeToString(bytes, Base64.DEFAULT)
     }
 
-    // 🔥 ADD CATEGORY DIALOG (FIXED)
+    // 🔥 ADD CATEGORY
     private fun openAddCategoryDialog() {
 
         val layout = LinearLayout(requireContext())
@@ -206,7 +209,6 @@ class HomeFragment : Fragment() {
             .setPositiveButton("Add") { _, _ ->
 
                 val name = editText.text.toString().trim()
-
                 if (name.isEmpty()) {
                     Toast.makeText(requireContext(), "Enter name", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
@@ -227,14 +229,15 @@ class HomeFragment : Fragment() {
             .show()
     }
 
+    // 🟢 FAST CATEGORY LOAD
     private fun fetchFirebaseCategories() {
         val ref = db.getReference("Categories")
 
-        ref.addValueEventListener(object : ValueEventListener {
+        ref.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
 
-                list.clear()
-                list.addAll(defaultCategories)
+                val tempList = mutableListOf<CategoryModel>()
+                tempList.addAll(defaultCategories)
 
                 val addedNames = HashSet<String>()
 
@@ -242,12 +245,14 @@ class HomeFragment : Fragment() {
                     val name = data.child("name").value?.toString() ?: ""
                     val base64 = data.child("image").value?.toString() ?: ""
 
-                    if (!addedNames.contains(name)) {
-                        list.add(CategoryModel(name = name, imageBase64 = base64))
+                    if (name.isNotEmpty() && !addedNames.contains(name)) {
+                        tempList.add(CategoryModel(name = name, imageBase64 = base64))
                         addedNames.add(name)
                     }
                 }
 
+                list.clear()
+                list.addAll(tempList)
                 adapter.notifyDataSetChanged()
             }
 
@@ -257,20 +262,30 @@ class HomeFragment : Fragment() {
         })
     }
 
+    // 🟢 FAST USER NAME
+    private fun loadUserName() {
+        val uid = auth.currentUser?.uid ?: return
+
+        db.getReference("Users").child(uid)
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val name = snapshot.child("shopName").value?.toString() ?: "User"
+                    txtWelcome.text = "Welcome, $name"
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    txtWelcome.text = "Welcome"
+                }
+            })
+    }
+
     private fun speak(text: String) {
         tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
 
         Handler(Looper.getMainLooper()).postDelayed({
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             startActivityForResult(intent, 200)
-        }, 1500)
-    }
-
-    private fun loadUserName() {
-        val uid = auth.currentUser?.uid ?: return
-        db.getReference("Users").child(uid).get().addOnSuccessListener {
-            txtWelcome.text = "Welcome, ${it.child("shopName").value}"
-        }
+        }, 1200)
     }
 
     override fun onDestroy() {
