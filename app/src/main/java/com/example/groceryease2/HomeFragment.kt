@@ -156,6 +156,7 @@ class HomeFragment : Fragment() {
             }
         }
 
+
         if (!found) {
             Toast.makeText(requireContext(), "Category not found", Toast.LENGTH_SHORT).show()
         }

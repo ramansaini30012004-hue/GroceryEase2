@@ -74,17 +74,15 @@ class ProfileFragment : Fragment() {
             startActivity(intent)
         }
 
-        // 🔥 FIRST LOAD → CACHE (instant)
         if (!isDataLoaded) {
-            loadFromCache()     // ⚡ instant UI
-            loadFromFirebase()  // 🔄 background update
+            loadFromCache()
+            loadFromFirebase()
             isDataLoaded = true
         }
 
         return view
     }
 
-    // 📸 Image result
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == 100 && resultCode == Activity.RESULT_OK) {
             val uri = data?.data ?: return
@@ -96,7 +94,6 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    // 🌍 Location
     private fun fetchLocation() {
 
         val fusedLocation = LocationServices.getFusedLocationProviderClient(requireActivity())
@@ -125,7 +122,6 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    // 💾 SAVE
     private fun saveProfile() {
 
         val uid = auth.currentUser?.uid ?: return
@@ -158,14 +154,16 @@ class ProfileFragment : Fragment() {
             .setValue(map)
             .addOnSuccessListener {
 
-                // ✅ CACHE SAVE (IMPORTANT)
                 saveToCache(name, phoneTxt, addressTxt, map["image"].toString())
+
+                // ✅ FIX: profileCompleted TRUE
+                val pref = requireContext().getSharedPreferences("user", 0)
+                pref.edit().putBoolean("profileCompleted", true).apply()
 
                 Toast.makeText(context, "Profile Saved", Toast.LENGTH_SHORT).show()
             }
     }
 
-    // 🔥 LOAD FROM FIREBASE (BACKGROUND)
     private fun loadFromFirebase() {
 
         val uid = auth.currentUser?.uid ?: return
@@ -198,13 +196,15 @@ class ProfileFragment : Fragment() {
                         selectedBitmap = bitmap
                     }
 
-                    // ✅ update cache
                     saveToCache(name, phoneTxt, addressTxt, image)
+
+                    // ✅ ALSO mark completed if data exists
+                    val pref = requireContext().getSharedPreferences("user", 0)
+                    pref.edit().putBoolean("profileCompleted", true).apply()
                 }
             }
     }
 
-    // ⚡ CACHE SAVE
     private fun saveToCache(name: String, phone: String, address: String, image: String) {
         val pref = requireContext().getSharedPreferences("user", 0)
         pref.edit()
@@ -215,7 +215,6 @@ class ProfileFragment : Fragment() {
             .apply()
     }
 
-    // ⚡ CACHE LOAD (INSTANT)
     private fun loadFromCache() {
         val pref = requireContext().getSharedPreferences("user", 0)
 

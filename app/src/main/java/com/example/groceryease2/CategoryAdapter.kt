@@ -56,7 +56,7 @@ class CategoryAdapter(private val list: MutableList<CategoryModel>) :
         // 🟢 SELECTED UI
         if (item.isSelected) {
             holder.name.setTextColor(
-                ContextCompat.getColor(context, android.R.color.black)
+                ContextCompat.getColor(context, android.R.color.white)
             )
             holder.name.setBackgroundColor(
                 ContextCompat.getColor(context, R.color.dark_green)
