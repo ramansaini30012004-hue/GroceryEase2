@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.net.Uri
 import android.os.*
 import android.speech.RecognizerIntent
@@ -72,10 +73,8 @@ class HomeFragment : Fragment() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseDatabase.getInstance()
 
-        // 🟢 FAST USER NAME LOAD
         loadUserName()
 
-        // 🟢 SET DEFAULT DATA FIRST (NO WAIT)
         list.clear()
         list.addAll(defaultCategories)
 
@@ -83,7 +82,6 @@ class HomeFragment : Fragment() {
         recyclerView.layoutManager = GridLayoutManager(requireContext(), 2)
         recyclerView.adapter = adapter
 
-        // 🟢 LOAD FIREBASE DATA (OPTIMIZED)
         fetchFirebaseCategories()
 
         tts = TextToSpeech(requireContext()) {}
@@ -109,7 +107,6 @@ class HomeFragment : Fragment() {
         return view
     }
 
-    // 🟢 BLINK
     private fun startBlinkAnimation() {
         val anim = AlphaAnimation(0.3f, 1.0f)
         anim.duration = 300
@@ -122,7 +119,6 @@ class HomeFragment : Fragment() {
         )
     }
 
-    // 🎤 RESULT
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
@@ -141,7 +137,6 @@ class HomeFragment : Fragment() {
         }
     }
 
-    // 🔥 FILTER
     private fun filterCategory(spoken: String) {
         var found = false
 
@@ -156,7 +151,6 @@ class HomeFragment : Fragment() {
             }
         }
 
-
         if (!found) {
             Toast.makeText(requireContext(), "Category not found", Toast.LENGTH_SHORT).show()
         }
@@ -164,19 +158,18 @@ class HomeFragment : Fragment() {
         adapter.notifyDataSetChanged()
     }
 
-    // 🔥 BASE64
     private fun uriToBase64(uri: Uri): String {
         val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return ""
         val bitmap = BitmapFactory.decodeStream(inputStream) ?: return ""
 
         val stream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 40, stream) // 🔥 reduced size
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 40, stream)
 
         val bytes = stream.toByteArray()
         return Base64.encodeToString(bytes, Base64.DEFAULT)
     }
 
-    // 🔥 ADD CATEGORY
+    // 🔥 UPDATED DIALOG
     private fun openAddCategoryDialog() {
 
         val layout = LinearLayout(requireContext())
@@ -186,11 +179,20 @@ class HomeFragment : Fragment() {
         val editText = EditText(requireContext())
         editText.hint = "Category Name"
 
+        editText.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.black))
+        editText.setHintTextColor(ContextCompat.getColor(requireContext(), android.R.color.darker_gray))
+        editText.backgroundTintList =
+            ContextCompat.getColorStateList(requireContext(), android.R.color.black)
+
         val imageView = ImageView(requireContext())
-        imageView.setImageResource(R.drawable.household)
+        imageView.setImageDrawable(null)
 
         val btnSelect = Button(requireContext())
         btnSelect.text = "Select Image"
+        btnSelect.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
+
+        // ✅ DARK GREEN (#1B5E20)
+        btnSelect.setBackgroundColor(Color.parseColor("#1B5E20"))
 
         layout.addView(editText)
         layout.addView(imageView)
@@ -230,7 +232,6 @@ class HomeFragment : Fragment() {
             .show()
     }
 
-    // 🟢 FAST CATEGORY LOAD
     private fun fetchFirebaseCategories() {
         val ref = db.getReference("Categories")
 
@@ -263,7 +264,6 @@ class HomeFragment : Fragment() {
         })
     }
 
-    // 🟢 FAST USER NAME
     private fun loadUserName() {
         val uid = auth.currentUser?.uid ?: return
 
