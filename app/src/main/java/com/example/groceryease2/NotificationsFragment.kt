@@ -169,38 +169,69 @@ class NotificationFragment : Fragment() {
 
     // ✅ FILTERED EXPORT
     private fun exportToExcel() {
-
         if (filteredProducts.isEmpty()) {
             Toast.makeText(context, "No data to export", Toast.LENGTH_SHORT).show()
             return
         }
 
         val workbook = XSSFWorkbook()
-        val sheet = workbook.createSheet("GroceryEase Inventory")
+        val sheet = workbook.createSheet("Inventory Report")
 
-        val headers = arrayOf("Product Name", "Category", "Quantity", "Price", "Unit")
-
+        // 1. Define Headers (Added "Total Amount")
+        val headers = arrayOf("Product Name", "Category", "Quantity", "Price", "Unit", "Total Amount")
         val headerRow = sheet.createRow(0)
         for (i in headers.indices) {
             headerRow.createCell(i).setCellValue(headers[i])
         }
 
+        var totalStockQuantity = 0.0
+        var totalStockValue = 0.0
+
+        // 2. Fill Data Rows
         for (i in filteredProducts.indices) {
             val row = sheet.createRow(i + 1)
             val product = filteredProducts[i]
 
+            val qty = product.quantity.toDoubleOrNull() ?: 0.0
+            val price = product.price.toDoubleOrNull() ?: 0.0
+            val rowTotal = qty * price
+
             row.createCell(0).setCellValue(product.name)
             row.createCell(1).setCellValue(product.category)
-            row.createCell(2).setCellValue(product.quantity)
-            row.createCell(3).setCellValue(product.price)
+            row.createCell(2).setCellValue(qty)
+            row.createCell(3).setCellValue(price)
             row.createCell(4).setCellValue(product.unit)
+            row.createCell(5).setCellValue(rowTotal)
+
+            // Accumulate totals for the summary
+            totalStockQuantity += qty
+            totalStockValue += rowTotal
         }
 
-        val fileName = "Filtered_Report_${System.currentTimeMillis()}.xlsx"
+        // 3. Add Bottom Stock Stats (Summary Section)
+        val lastDataRow = filteredProducts.size + 1
+        val summaryStartRow = lastDataRow + 2 // Leave 2 empty rows for spacing
+
+        val summaryRow1 = sheet.createRow(summaryStartRow)
+        summaryRow1.createCell(0).setCellValue("STOCK SUMMARY")
+
+        val summaryRow2 = sheet.createRow(summaryStartRow + 1)
+        summaryRow2.createCell(0).setCellValue("Total Unique Items:")
+        summaryRow2.createCell(1).setCellValue(filteredProducts.size.toDouble())
+
+        val summaryRow3 = sheet.createRow(summaryStartRow + 2)
+        summaryRow3.createCell(0).setCellValue("Total Quantity in Stock:")
+        summaryRow3.createCell(1).setCellValue(totalStockQuantity)
+
+        val summaryRow4 = sheet.createRow(summaryStartRow + 3)
+        summaryRow4.createCell(0).setCellValue("Total Inventory Value:")
+        summaryRow4.createCell(1).setCellValue(totalStockValue)
+
+        // 4. Save the File
+        val fileName = "Inventory_Stats_${System.currentTimeMillis()}.xlsx"
 
         try {
             val resolver = requireContext().contentResolver
-
             val contentValues = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
                 put(MediaStore.MediaColumns.MIME_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -215,14 +246,13 @@ class NotificationFragment : Fragment() {
                 outputStream?.close()
                 workbook.close()
 
-                Toast.makeText(context, "Filtered Excel Downloaded", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Report saved to Downloads", Toast.LENGTH_LONG).show()
             }
-
         } catch (e: Exception) {
+            e.printStackTrace()
             Toast.makeText(context, "Export Failed", Toast.LENGTH_SHORT).show()
         }
     }
-
     // ✅ EDIT / DELETE
     private fun showEditDeleteDialog(product: ProductModel, key: String) {
 
